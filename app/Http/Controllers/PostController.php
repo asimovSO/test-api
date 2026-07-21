@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PostController extends Controller
 {
@@ -22,14 +23,20 @@ class PostController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255',
                 'body' => 'sometimes|string|max:3000',
-                'poster' => 'sometimes|string|max:255',
+                'poster' => 'sometimes|image|mimes:jpg,jpeg,png,webp',
             ])
         );
 
-        $post = Post::create([
-            'user_id' => $request->user()->id,
-            ...$fields,
-        ]);
+        if ($request->hasFile('poster')) {
+            $fields['poster'] = $request->file('poster')->store('posters', 'public');
+        }
+
+        // $post = Post::create([
+        //     'user_id' => $request->user()->id,
+        //     ...$fields,
+        // ]);
+
+        $post = $request->user()->posts()->create($fields);
 
         return response()->json([
             'message' => 'Post created.',
@@ -51,8 +58,15 @@ class PostController extends Controller
         $fields = $request->validate([
             'title' => 'sometimes|string|max:255',
             'body' => 'sometimes|string|max:3000',
-            'poster' => 'sometimes|string|max:255',
+            'poster' => 'sometimes|image',
         ]);
+
+        if ($request->hasFile('poster')) {
+            if ($post->poster) {
+                Storage::disk('public')->delete($post->poster);
+            }
+            $fields['poster'] = $request->file('poster')->store('posters', 'public');
+        }
 
         $post->update($fields);
 
@@ -64,7 +78,7 @@ class PostController extends Controller
         $post = Post::findOrFail($id);
         $user = $request->user();
 
-        if($user->id !== $post->user_id){
+        if ($user->id !== $post->user_id) {
             return response()->json([
                 'message' => 'Forbidden'
             ], 403);
