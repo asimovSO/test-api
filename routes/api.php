@@ -9,9 +9,11 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::post('/register', [AuthController::class, 'createNewUser']);
-Route::post('/login', [AuthController::class, 'loginUser']);
-
+Route::controller(AuthController::class)->group(function(){
+    Route::post('/register', 'createNewUser');
+    Route::post('/login', 'loginUser');
+    Route::post('/logout', 'logoutUser')->middleware('auth:sanctum');
+});
 
 Route::middleware('auth:sanctum')->group(function(){
     Route::get('/posts', [PostController::class, 'showAllPosts']);
