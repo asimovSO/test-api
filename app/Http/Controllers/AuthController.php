@@ -2,20 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\WelcomeMail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\WelcomeMail;
 
 class AuthController extends Controller
 {
     //
-    public function createNewUser(Request $request){
+    public function createNewUser(Request $request)
+    {
         $fields = $request->validate([
             'name' => 'required|min:3|max:230|string',
             'email' => 'email|unique:users|required',
-            'password' => 'min:3|required'
+            'password' => 'min:3|required',
         ]);
 
         $user = User::create($fields);
@@ -26,19 +27,20 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user
+            'user' => $user,
         ]);
     }
 
-    public function loginUser(Request $request){
+    public function loginUser(Request $request)
+    {
         $fields = $request->validate([
             'email' => 'email|required',
-            'password' => 'string|required'
+            'password' => 'string|required',
         ]);
 
-        if(!Auth::attempt($fields)){
+        if (! Auth::attempt($fields)) {
             return response()->json([
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ], 401);
         }
 
