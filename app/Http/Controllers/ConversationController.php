@@ -9,11 +9,10 @@ use App\Models\User;
 class ConversationController extends Controller
 {
     public function createConversation(Request $request, string $id){
-        $sender = $request->user();
-        $receiver = User::findOrFail($id);
+        $user = $request->user();
 
         Conversation::firstOrCreate([
-            'owner_id' => $sender->id,
+            'owner_id' => $user->id
         ]);
     }
 }

@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('conversation_user', function (Blueprint $table) {
             $table->foreignId('user_id');
             $table->foreignId('conversation_id');
+            $table->primary(['conversation_id', 'user_id']);
         });
     }
     /**
