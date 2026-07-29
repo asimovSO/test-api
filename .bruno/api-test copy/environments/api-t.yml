@@ -1,0 +1,8 @@
+name: api-t
+variables:
+  - name: base
+    value: http://localhost:8000/api
+  - name: token
+    value: dev-token-alice
+  - name: token2
+    value: dev-token-bob

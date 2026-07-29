@@ -1,0 +1,21 @@
+info:
+  name: login
+  type: http
+  seq: 2
+
+http:
+  method: POST
+  url: "{{base}}/login"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "alice@example.com",
+        "password": "password"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

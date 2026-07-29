@@ -1,0 +1,23 @@
+info:
+  name: update post
+  type: http
+  seq: 5
+
+http:
+  method: PUT
+  url: "{{base}}/posts/1"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "title 1 updated 2"
+      }
+  auth:
+    type: bearer
+    token: "{{token}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

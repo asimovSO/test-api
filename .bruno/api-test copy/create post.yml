@@ -1,0 +1,23 @@
+info:
+  name: create post
+  type: http
+  seq: 4
+
+http:
+  method: POST
+  url: "{{base}}/posts"
+  body:
+    type: json
+    data: |-
+      {
+        "title": "test title 3"
+      }
+  auth:
+    type: bearer
+    token: 1|LobxZbLZMtzkcYXoAcWp0J4mhYaIyz029Nr7GfEf6dbc9d70
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -30,7 +30,7 @@ class ConversationController extends Controller
     }
 
     public function getAllUserConversations(Request $request){
-        $conversations = $request->user()->conversations()->with('users')->get();
+        $conversations = $request->user()->conversations()->with('users:id,name')->get();
         return response()->json([
             'conversations' => $conversations
         ], 200);

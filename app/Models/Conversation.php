@@ -8,6 +8,12 @@ class Conversation extends Model
 {
     protected $fillable = ['name', 'is_group', 'owner_id'];
 
+    protected function casts(){
+        return [
+            'is_group' => 'boolean'
+        ];
+    }
+
     public function users()
     {
         return $this->belongsToMany(User::class);
