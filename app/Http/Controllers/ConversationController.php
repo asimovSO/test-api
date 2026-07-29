@@ -28,4 +28,11 @@ class ConversationController extends Controller
             'conversation' => $conversation
         ], 200);
     }
+
+    public function getAllUserConversations(Request $request){
+        $conversations = $request->user()->conversations()->with('users')->get();
+        return response()->json([
+            'conversations' => $conversations
+        ], 200);
+    }
 }
