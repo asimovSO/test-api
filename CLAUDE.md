@@ -51,21 +51,37 @@ Laravel 13 (`^13.8`), PHP `^8.3`, MariaDB, Sanctum для API-токенов.
 `ConversationService::firstOrCreate()` — поиск через два `whereRelation`, создание в `DB::transaction`
 (беседа + `attach` участников должны примениться атомарно).
 
-## Где остановились (2026-07-29)
+## Где остановились (2026-07-30)
 
-Последнее сделанное: `GET /api/conversations` работает, N+1 закрыт через `with('users:id,name')`
-(замер: 7 запросов → 2 на шести беседах), `is_group` кастуется в boolean.
+**API Resources — сделаны и подключены.** `ConversationResource` + `UserResource`
+(`app/Http/Resources`), оба эндпоинта отдают через них.
+- «Собеседник vs список участников» решён: в ресурсе `when($this->is_group, ...)` —
+  приват отдаёт ключ `interlocutor` (один `UserResource`, вычислен `firstWhere('id','!=',$myId)`
+  по уже загруженной коллекции), группа отдаёт `users` (`UserResource::collection`).
+- Везде `whenLoaded(...)` + значение в `fn () => ...`, чтобы связь не грузилась вхолостую.
+- `UserResource` отдаёт только `id`+`name` — теперь это граница API (email/хеш не текут),
+  а `users:id,name` в контроллере стал чисто оптимизацией запроса.
+- Проверено вживую: `interlocutor` разный по беседам и это не текущий юзер, лишних полей нет,
+  `is_group` — boolean.
 
-**Следующие шаги по списку бесед:**
+**Последнее сообщение — почти готово, но есть незакрытый баг.**
+- Связь на `Conversation`: `lastMessage()` = `hasOne(Message::class)->latestOfMany()` (по `id`,
+  не по `created_at` — id уникален, нет неоднозначности tie-break). Есть.
+- В ресурсе: ключ `last_message` через `whenLoaded('lastMessage', ...)` — пока отдаёт сырую
+  модель сообщения (будущий `MessageResource` заведём в `MessageController`).
+- **БАГ (не исправлен):** в контроллере `->with('lastMessage:id,body')` не хватает внешнего
+  ключа → `last_message` придёт `null`. Нужно `lastMessage:id,body,conversation_id`.
+  Правило: при `relation:колонки` для hasOne/hasMany включать FK дочерней таблицы.
+- Автор сообщения в превью пока НЕ грузится (убрали `lastMessage.author:id,name`). Если нужен
+  «Bob: привет» — вернуть его в `with` и обернуть в `UserResource`.
 
-1. `paginate()` вместо `get()` — сейчас список возвращает всё без ограничений.
-2. **API Resources** (`php artisan make:resource`) — сейчас модели уходят в JSON как есть,
-   форму ответа диктует структура таблицы. Отдельно обсудить: в приватном чате фронтенду нужен
-   не список участников, а один собеседник. Смотреть `whenLoaded()`.
-3. Последнее сообщение в списке — связь через `hasOne(Message::class)->latestOfMany()`
-   (наивный `with('messages')` загрузит всю переписку).
-4. Сортировка по свежести. Развилка: подзапрос в `orderBy` vs денормализованная
+**Следующие шаги по списку бесед (в этом порядке):**
+
+1. Починить FK-баг выше и проверить, что `last_message` не `null`.
+2. Сортировка по свежести. Развилка: подзапрос в `orderBy` vs денормализованная
    колонка `last_message_at` в `conversations`.
+3. `paginate()` вместо `get()` — сейчас список возвращает всё без ограничений.
+   `ConversationResource::collection()` поверх `paginate()` сам сохранит мета пагинации.
 
 **Решение, которое нужно принять до `MessageController`:** как считать непрочитанные.
 Вариант — `last_read_at` в pivot `conversation_user` (тогда нужен `withPivot()`),
