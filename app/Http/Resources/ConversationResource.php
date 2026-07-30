@@ -28,12 +28,10 @@ class ConversationResource extends JsonResource
                 $this->is_group,
                 fn()
                 =>
-                $this->whenLoaded('users')
+                UserResource::collection($this->whenLoaded('users'))
             ),
-            'interlocutor' => $this->when(
-                ! $this->is_group,
-                $interlocutor
-            ),
+            'interlocutor' => $this->when(! $this->is_group, fn() =>
+            UserResource::make($interlocutor)),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at
         ];

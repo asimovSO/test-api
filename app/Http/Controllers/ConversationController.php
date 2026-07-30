@@ -20,13 +20,13 @@ class ConversationController extends Controller
         if ($conversation->wasRecentlyCreated) {
             return response()->json([
                 'message' => 'Created',
-                'conversation' => $conversation
+                'conversation' => new ConversationResource($conversation)
             ], 201);
         }
 
         return response()->json([
             'message' => 'Was existing',
-            'conversation' => $conversation
+            'conversation' => new ConversationResource($conversation)
         ], 200);
     }
 
