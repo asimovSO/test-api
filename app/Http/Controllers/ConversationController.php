@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ConversationResource;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Services\ConversationService;
@@ -32,7 +33,7 @@ class ConversationController extends Controller
     public function getAllUserConversations(Request $request){
         $conversations = $request->user()->conversations()->with('users:id,name')->get();
         return response()->json([
-            'conversations' => $conversations
+            'conversations' => ConversationResource::collection($conversations)
         ], 200);
     }
 }
