@@ -5,7 +5,9 @@
       "Bash(mv database/migrations/2026_07_28_091043_create_conversations_table.php database/migrations/2026_07_28_091010_create_conversations_table.php)",
       "Bash(mv database/migrations/2026_07_28_091111_conversation_user.php database/migrations/2026_07_28_091020_create_conversation_user_table.php)",
       "Bash(php -l database/seeders/DevUsersSeeder.php)",
-      "Bash(php artisan *)"
+      "Bash(php artisan *)",
+      "Bash(curl -s -m 10 -H \"Authorization: Bearer 1|dev-token-alice\" -H \"Accept: application/json\" http://127.0.0.1:8000/api/conversations)",
+      "Bash(php -r '$d=json_decode\\(file_get_contents\\(\"php://stdin\"\\),true\\); echo \"ключи верхнего уровня: \".implode\\(\", \", array_keys\\($d\\)\\).\"\\\\n\"; echo \"ключи внутри conversations: \".implode\\(\", \", array_keys\\($d[\"conversations\"]\\)\\).\"\\\\n\";')"
     ]
   }
 }

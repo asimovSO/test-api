@@ -8,6 +8,9 @@ class Message extends Model
 {
     protected $fillable = ['body', 'user_id', 'conversation_id'];
 
+
+    protected $touches = ['conversation'];
+
     public function author()
     {
         return $this->belongsTo(User::class, 'user_id');

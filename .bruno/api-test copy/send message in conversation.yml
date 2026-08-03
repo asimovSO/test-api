@@ -1,14 +1,11 @@
 info:
-  name: create conversation
+  name: send message in conversation
   type: http
-  seq: 7
+  seq: 9
 
 http:
   method: POST
-  url: "{{base}}/conversations/9"
-  body:
-    type: json
-    data: ""
+  url: "{{base}}/conversations/1/messages"
   auth: inherit
 
 settings:

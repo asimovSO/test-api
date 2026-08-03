@@ -31,9 +31,10 @@ class ConversationController extends Controller
     }
 
     public function getAllUserConversations(Request $request){
-        $conversations = $request->user()->conversations()->with('users:id,name', 'lastMessage:id,body')->get();
-        return response()->json([
-            'conversations' => ConversationResource::collection($conversations)
-        ], 200);
+        $conversations = $request->user()->conversations()
+            ->with('users:id,name', 'lastMessage:messages.id,messages.body,messages.conversation_id')
+            ->orderByDesc('conversations.updated_at')
+            ->paginate(20);
+        return ConversationResource::collection($conversations);
     }
 }
