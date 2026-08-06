@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('conversation_user', function (Blueprint $table) {
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('conversation_id')->constrained()->cascadeOnDelete();
+            $table->timestamp('last_read_at')->nullable();
             $table->primary(['conversation_id', 'user_id']);
         });
     }

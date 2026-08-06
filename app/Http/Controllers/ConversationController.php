@@ -42,14 +42,6 @@ class ConversationController extends Controller
 
     public function deleteConversation(Request $request, ConversationService $service, Conversation $conversation)
     {
-        $authUser = $request->user();
-
-        // if (!$conversation->users()->where('user_id', $authUser->id)->exists()) {
-        //     return response()->json([
-        //         'message' => 'You are not a participant of this conversation'
-        //     ], 403);
-        // }
-
         Gate::authorize('delete', $conversation);
 
         $service->deleteConversation($conversation);

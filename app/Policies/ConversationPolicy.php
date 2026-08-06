@@ -20,45 +20,12 @@ class ConversationPolicy
     {
         return $this->isParticipant($user, $conversation);
     }
-
-    /**
-     * Determine whether the user can create models.
-     */
-    public function create(User $user, Conversation $conversation): bool
-    {
-        return $this->isParticipant($user, $conversation);
-    }
-
-    /**
-     * Determine whether the user can update the model.
-     */
-    public function update(User $user, Conversation $conversation): bool
-    {
-        return $this->isParticipant($user, $conversation);
-    }
-
     /**
      * Determine whether the user can delete the model.
      */
     public function delete(User $user, Conversation $conversation): bool
     {
         return $this->isParticipant($user, $conversation);
-    }
-
-    /**
-     * Determine whether the user can restore the model.
-     */
-    public function restore(User $user, Conversation $conversation): bool
-    {
-        return $this->isParticipant($user, $conversation);
-    }
-
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
-    public function forceDelete(User $user, Conversation $conversation): bool
-    {
-        return false;
     }
 
     public function sendMessages(User $user, Conversation $conversation): bool
