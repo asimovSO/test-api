@@ -5,7 +5,13 @@ info:
 
 http:
   method: POST
-  url: "{{base}}/conversations/1/messages"
+  url: "{{base}}/conversations/2/messages"
+  body:
+    type: json
+    data: |-
+      {
+        "body": "hello 3"
+      }
   auth: inherit
 
 settings:

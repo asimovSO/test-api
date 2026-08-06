@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\CheckUserIsOnline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -26,7 +27,10 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::prefix('/conversations')->group(function(){
         Route::get('/', [ConversationController::class, 'getAllUserConversations']);
         Route::post('/{user}', [ConversationController::class, 'createConversation']); // для созданя беседы с пользователем
+        Route::delete('/{conversation}', [ConversationController::class, 'deleteConversation']);
         Route::get('/{conversation}/messages', [MessageController::class, 'getMessages']);
         Route::post('/{conversation}/messages', [MessageController::class, 'sendMessage']);
     });
+
+    Route::get('/heartbeat', CheckUserIsOnline::class);
 });

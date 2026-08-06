@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{base}}/conversations/9"
+  url: "{{base}}/conversations/4"
   body:
     type: json
     data: ""

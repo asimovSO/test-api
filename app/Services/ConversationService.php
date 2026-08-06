@@ -34,4 +34,14 @@ class ConversationService
             return $conversation->load('users');
         });
     }
+
+    public function getConversationById(int $conversationId)
+    {
+        return Conversation::find($conversationId);
+    }
+
+    public function deleteConversation(Conversation $conversation)
+    {
+        $conversation->delete();
+    }
 }

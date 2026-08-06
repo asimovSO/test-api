@@ -6,6 +6,7 @@ use App\Http\Resources\ConversationResource;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Services\ConversationService;
+use App\Models\Conversation;
 
 class ConversationController extends Controller
 {
@@ -36,5 +37,29 @@ class ConversationController extends Controller
             ->orderByDesc('conversations.updated_at')
             ->paginate(20);
         return ConversationResource::collection($conversations);
+    }
+
+    public function deleteConversation(Request $request, ConversationService $service, Conversation $conversation)
+    {
+        $authUser = $request->user();
+        $conversation = $service->getConversationById($conversation->id);
+
+        if (!$conversation) {
+            return response()->json([
+                'message' => 'Conversation not found'
+            ], 404);
+        }
+
+        if (!$conversation->users()->where('user_id', $authUser->id)->exists()) {
+            return response()->json([
+                'message' => 'You are not a participant of this conversation'
+            ], 403);
+        }
+
+        $service->deleteConversation($conversation);
+
+        return response()->json([
+            'message' => 'Conversation deleted'
+        ], 200);
     }
 }
