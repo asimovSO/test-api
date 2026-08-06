@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Services\ConversationService;
 use App\Models\Conversation;
+use Illuminate\Support\Facades\Gate;
 
 class ConversationController extends Controller
 {
@@ -42,19 +43,14 @@ class ConversationController extends Controller
     public function deleteConversation(Request $request, ConversationService $service, Conversation $conversation)
     {
         $authUser = $request->user();
-        $conversation = $service->getConversationById($conversation->id);
 
-        if (!$conversation) {
-            return response()->json([
-                'message' => 'Conversation not found'
-            ], 404);
-        }
+        // if (!$conversation->users()->where('user_id', $authUser->id)->exists()) {
+        //     return response()->json([
+        //         'message' => 'You are not a participant of this conversation'
+        //     ], 403);
+        // }
 
-        if (!$conversation->users()->where('user_id', $authUser->id)->exists()) {
-            return response()->json([
-                'message' => 'You are not a participant of this conversation'
-            ], 403);
-        }
+        Gate::authorize('delete', $conversation);
 
         $service->deleteConversation($conversation);
 

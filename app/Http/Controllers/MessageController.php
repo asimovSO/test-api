@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Http\Request;
 use App\Http\Resources\MessageResource;
+use Illuminate\Support\Facades\Gate;
 
 class MessageController extends Controller
 {
@@ -13,31 +14,23 @@ class MessageController extends Controller
     public function getMessages(Request $request, Conversation $conversation)
     {
         $authUser = $request->user();
-        if (! $conversation->users()->where('user_id', $authUser->id)->exists()) {
-            return response()->json([
-                'message' => 'You are not a participant of this conversation'
-            ], 403);
-        }
-
-        return $conversation->messages();
+        Gate::authorize('view', $conversation);
+        $messages = $conversation->messages()->with('author:id,name')->latest()->paginate(20);
+        return MessageResource::collection($messages);
     }
 
     public function sendMessage(Request $request, Conversation $conversation){
         $authUser = $request->user();
 
-        if($conversation->users()->where('user_id', $authUser->id)->doesntExist()){
-            return response()->json([
-                'message' => 'You are not a participant of this conversation'
-            ], 403);
-        }
+        Gate::authorize('sendMessages', $conversation);
 
-        $message = request()->validate([
+        $validated = request()->validate([
             'body' => 'required|string|min:1|max:2000'
         ]);
 
-        $authUser->messages()->create([
+        $message = $authUser->messages()->create([
             'conversation_id' => $conversation->id,
-            'body' => $message['body']
+            'body' => $validated['body']
         ]);
 
         return response()->json([
