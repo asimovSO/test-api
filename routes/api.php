@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::get('/', [ConversationController::class, 'getAllUserConversations']);
         Route::post('/{user}', [ConversationController::class, 'createConversation']); // для созданя беседы с пользователем
         Route::delete('/{conversation}', [ConversationController::class, 'deleteConversation']);
+        Route::put('/{conversation}/mark-as-read', [ConversationController::class, 'markAsRead']);
         Route::get('/{conversation}/messages', [MessageController::class, 'getMessages']);
         Route::post('/{conversation}/messages', [MessageController::class, 'sendMessage']);
     });

@@ -33,6 +33,7 @@ class ConversationResource extends JsonResource
             'interlocutor' => $this->when(! $this->is_group, fn() =>
             UserResource::make($interlocutor)),
             'last_message' => $this->whenLoaded('lastMessage', fn() => new MessageResource($this->lastMessage)),
+            'unread_messages_count' => $this->whenCounted('unread_messages_count', fn() => $this->unread_messages_count),
             'messages' => $this->whenLoaded('messages', fn() =>
             MessageResource::collection($this->messages)),
             'created_at' => $this->created_at,

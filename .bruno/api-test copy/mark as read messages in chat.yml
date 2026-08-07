@@ -1,0 +1,15 @@
+info:
+  name: mark as read messages in chat
+  type: http
+  seq: 11
+
+http:
+  method: PUT
+  url: "{{base}}/conversastions/2/mark-as-read"
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

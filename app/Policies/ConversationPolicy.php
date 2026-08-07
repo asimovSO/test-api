@@ -32,4 +32,9 @@ class ConversationPolicy
     {
         return $this->isParticipant($user, $conversation);
     }
+
+    public function markAsRead(User $user, Conversation $conversation): bool
+    {
+        return $this->isParticipant($user, $conversation);
+    }
 }

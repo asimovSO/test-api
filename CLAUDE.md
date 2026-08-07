@@ -164,21 +164,70 @@ Laravel 13 (`^13.8`), PHP `^8.3`, MariaDB, Sanctum для API-токенов.
   не существует), сигнатура с `Conversation` уронит вызов.
 - Проверено вживую: чужая беседа → 403 `"This action is unauthorized."`, своя работает.
 
-## Следующая задача: непрочитанные сообщения (на этом остановились 2026-08-06)
+## Непрочитанные сообщения — сделано (2026-08-07)
 
-**Решение принято: `last_read_at` в pivot `conversation_user`.** Отдельную таблицу
+**Решение: `last_read_at` в pivot `conversation_user`.** Отдельную таблицу
 `message_reads` не делаем — она даёт галочки «кто прочитал конкретное сообщение», но растёт
 как сообщения × участники, а для учебного чата хватает счётчика.
 
-Что предстоит:
-1. Миграция: добавить `last_read_at` (nullable timestamp) в `conversation_user`.
-2. `User::conversations()` → `withPivot('last_read_at')`, иначе колонка не приедет.
-3. Эндпоинт «отметить прочитанным» (`updateExistingPivot`).
-4. Счётчик непрочитанных в списке бесед.
+Что сделано:
+1. Миграция: `last_read_at` (nullable timestamp) в `conversation_user` — правкой существующей
+   миграции, без новой (`migrate:fresh` всё равно пересоздаёт).
+2. `User::conversations()` → `withPivot('last_read_at')`. Заодно был добавлен `withTimestamps()`
+   и снят: в pivot нет колонок `created_at`/`updated_at`, `attach()` падал бы на «Column not found».
+   Учесть: на `Conversation::users()` `withPivot` нет — со стороны беседы pivot не прочитается.
+3. `PUT /api/conversations/{conversation}/mark-as-read` → `ConversationController::markAsRead`,
+   `ConversationPolicy::markAsRead` (по конвенции «метод по действию», внутри тот же
+   `isParticipant()`), тело — `$conversation->users()->updateExistingPivot($request->user()->id,
+   ['last_read_at' => now()])`, ответ 200 + `message`.
+4. Счётчик в списке бесед — `withCount` в `getAllUserConversations`, ключ
+   `unread_messages_count`, в `ConversationResource` отдаётся через `whenCounted()`.
 
-**Главная ловушка шага 4 — N+1.** На экране 20 бесед; наивный счётчик = 20 отдельных
-`count()`-запросов. Пользователь это предвидит («надо в один-два запроса»), способ ещё
-не разбирали — смотреть в сторону `withCount` с условием по pivot.
+Проверено вживую: свежие сообщения от собеседника, ноль сразу после `mark-as-read`,
+беседа с `last_read_at = null`.
+
+**Про `updateExistingPivot($id, $attrs)`:** отмечает ровно одного участника, не всех.
+`where` собирается из двух мест: связь `$conversation->users()` уже даёт
+`conversation_id = <id беседы>`, а первый аргумент — id **противоположной** стороны
+(стартуешь от беседы → это `user_id`; стартуешь от юзера → это `conversation_id`).
+Передать не ту сторону — тихий баг: обновится чужая/несуществующая строка без ошибки.
+У всех сразу отметил бы только `newPivotQuery()->update(...)`.
+Плюс: `updateExistingPivot` не трогает `updated_at` беседы, поэтому чтение не поднимает
+чат наверх списка (сортировка-то по `conversations.updated_at`).
+
+**Как устроен счётчик (главное — N+1 нет).** `withCount` не делает второй запрос и не делает
+join: он дописывает в `select` основного запроса коррелированный подзапрос. Итог — один запрос
+на все 20 бесед:
+
+```php
+->withCount(['messages as unread_messages_count' => fn ($query) =>
+    $query->where('messages.user_id', '!=', $myId)
+          ->where(fn ($q) => $q->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at')
+                               ->orWhereNull('conversation_user.last_read_at'))])
+```
+
+- Ключевой трюк: `last_read_at` **не достаётся в PHP**. Подзапрос ссылается на
+  `conversation_user.last_read_at` из внешнего запроса — коррелированному подзапросу это можно,
+  а нужная строка pivot там ровно одна, потому что `belongsToMany` уже отфильтровал join по
+  `user_id = <мой>`. Попытка вытащить значение через отдельный запрос + `first()->pivot` даёт
+  одно и то же число для всех бесед.
+- Сравнение колонки с колонкой — `whereColumn`, у обычного `where` второй аргумент это всегда
+  значение (`where('conversations.id', 'messages.conversation_id')` сравнит со **строкой**).
+- Вложенное замыкание в `where` = круглые скобки в SQL. Без него получается `(A and B) or C`,
+  и в беседе с `last_read_at = null` условие C истинно для всех строк — в счётчик попадают
+  собственные сообщения.
+- `withCount(['relation as alias' => fn])` — именно массив. `withCount('...', fn)` вторым
+  аргументом молча игнорирует замыкание, и счётчик считает все сообщения беседы.
+- В ресурсе — `whenCounted()` (парный к `whenLoaded`): в `createConversation` счётчик не
+  запрашивается, и ключ там просто не появится вместо `null`.
+
+**Известные крайние случаи счётчика (осознанно не чиним):**
+- Секундная гранулярность: `timestamp` без precision в MariaDB хранит целые секунды, у
+  `messages.created_at` то же самое. Сообщение и отметка о прочтении могут попасть в одну
+  секунду и оказаться равны — со строгим `>` такое сообщение навсегда выпадет из непрочитанных.
+  (Безопаснее `>=`: посчитается лишним разок и вылечится следующим открытием чата.)
+- `messages.user_id` nullable (`nullOnDelete`) → `user_id != $myId` даёт `NULL`, и сообщения
+  удалённых пользователей в непрочитанные не попадают.
 
 **Дальше по проекту:** Redis-присутствие (`CheckUserIsOnline` — заготовка уже есть),
 групповые чаты (`is_group`/`owner_id` в схеме есть, код их не использует),

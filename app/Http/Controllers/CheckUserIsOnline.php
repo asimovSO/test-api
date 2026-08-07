@@ -15,6 +15,6 @@ class CheckUserIsOnline extends Controller
         return response()->json([
             'message' => 'User is online',
             'user' => new UserResource($user)
-        ]);
+        ], 200);
     }
 }
