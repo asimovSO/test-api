@@ -7,7 +7,10 @@
       "Bash(php -l database/seeders/DevUsersSeeder.php)",
       "Bash(php artisan *)",
       "Bash(curl -s -m 10 -H \"Authorization: Bearer 1|dev-token-alice\" -H \"Accept: application/json\" http://127.0.0.1:8000/api/conversations)",
-      "Bash(php -r '$d=json_decode\\(file_get_contents\\(\"php://stdin\"\\),true\\); echo \"ключи верхнего уровня: \".implode\\(\", \", array_keys\\($d\\)\\).\"\\\\n\"; echo \"ключи внутри conversations: \".implode\\(\", \", array_keys\\($d[\"conversations\"]\\)\\).\"\\\\n\";')"
+      "Bash(php -r '$d=json_decode\\(file_get_contents\\(\"php://stdin\"\\),true\\); echo \"ключи верхнего уровня: \".implode\\(\", \", array_keys\\($d\\)\\).\"\\\\n\"; echo \"ключи внутри conversations: \".implode\\(\", \", array_keys\\($d[\"conversations\"]\\)\\).\"\\\\n\";')",
+      "Bash(php -m)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(php --version)"
     ]
   }
 }

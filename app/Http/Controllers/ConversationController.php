@@ -37,7 +37,7 @@ class ConversationController extends Controller
         $myId = $request->user()->id;
         $conversations = $request->user()->conversations()
             ->with('users:id,name', 'lastMessage:messages.id,messages.body,messages.conversation_id')
-            ->withCount(['messages as unread_messages_count' => fn ($query) => $query->where('messages.user_id', '!=', $myId)->where(fn ($query) => $query->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at')->orWhereNull('conversation_user.last_read_at'))])
+            ->withCount(['messages as unread_messages_count' => fn($query) => $query->where('messages.user_id', '!=', $myId)->where(fn($query) => $query->whereColumn('messages.created_at', '>', 'conversation_user.last_read_at')->orWhereNull('conversation_user.last_read_at'))])
             ->orderByDesc('conversations.updated_at')
             ->paginate(20);
 
