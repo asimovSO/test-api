@@ -7,6 +7,7 @@ use App\Models\Message;
 use Illuminate\Http\Request;
 use App\Http\Resources\MessageResource;
 use Illuminate\Support\Facades\Gate;
+use App\Events\MessageSent;
 
 class MessageController extends Controller
 {
@@ -31,6 +32,8 @@ class MessageController extends Controller
             'conversation_id' => $conversation->id,
             'body' => $validated['body']
         ]);
+
+        MessageSent::dispatch($message->setRelation('author', $authUser));
 
         return response()->json([
             'message' => new MessageResource($message)

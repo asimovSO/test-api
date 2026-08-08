@@ -40,7 +40,7 @@ class MessageSent implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         return [
-            'message' => MessageResource::make($this->message->load('author')),
+            'message' => MessageResource::make($this->message),
         ];
     }
 }

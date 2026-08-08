@@ -276,3 +276,146 @@ join: он дописывает в `select` основного запроса к
 к списку бесед и `UserResource` (поле `online` в ресурсе, простановка `$user->online`
 на моделях до сериализации), планировщик под `cleanup()`. Логика для этого уже готова
 в сервисе — когда вернёмся, остаётся только вызвать её из контроллера.
+
+## Broadcasting — новые сообщения сделаны, дальше счётчик и presence (2026-08-09)
+
+Три пункта в очереди на broadcasting: (1) новые сообщения, (2) счётчик непрочитанных
+на лету, (3) presence-каналы Echo — **они заменят** только что построенный `PresenceService`
+на Redis/heartbeat-поллинг, а не дополнят его (presence-канал сам знает, кто подключён,
+без опроса). Пункт (1) закрыт, ниже — что сделано и на чём споткнулись.
+
+**Инфраструктура.** `laravel/reverb` установлен. Установщик `install:broadcasting --reverb`
+дошёл до вопроса «ставить ли npm-пакеты» и завис (неинтерактивная среда, фронта тут и нет —
+JS-клиент `laravel-echo`/`pusher-js` сознательно не ставили), пришлось убить процесс и
+доделать руками:
+- `.env`: `BROADCAST_CONNECTION=reverb`, `REVERB_APP_ID/KEY/SECRET` (сгенерированы вручную),
+  `REVERB_HOST=localhost`, `REVERB_PORT=8080`, `REVERB_SCHEME=http`, плюс `VITE_REVERB_*`
+  (не используются без фронта, но не мешают).
+- `config/broadcasting.php` и `config/reverb.php` опубликованы.
+- `routes/channels.php` — из коробки только `App.Models.User.{id}`, добавлен свой канал
+  (ниже).
+- **Грабли с `bootstrap/app.php`:** шорткат `channels: __DIR__.'/../routes/channels.php'`
+  внутри `withRouting()` не даёт передать атрибуты (middleware) для `/broadcasting/auth` —
+  под капотом всегда зовёт `Broadcast::routes()` без аргументов, а там дефолт
+  `['middleware' => ['web']]`. У нас же весь API на `auth:sanctum` (Bearer-токены, не
+  сессии) — с `web` middleware `/broadcasting/auth` не видел авторизованного юзера вообще
+  (403 на валидный Bearer-токен, проверено curl'ом). Фикс: убрали `channels:` из
+  `withRouting()`, вместо этого отдельный вызов
+  `->withBroadcasting(__DIR__.'/../routes/channels.php', ['middleware' => ['auth:sanctum']])`
+  сразу за `withRouting()`. После фикса `route:list -v` показывает
+  `Illuminate\Auth\Middleware\Authenticate:sanctum` на `/broadcasting/auth`.
+
+**Канал.** `Broadcast::channel('conversation.{conversation}', function ($user, Conversation $conversation) { return $user->can('view', $conversation); })`
+в `routes/channels.php`. Переиспользует существующую `ConversationPolicy::view()` —
+не завели новый метод под broadcasting, раз проверка та же («участник ли юзер»).
+- **Грабли:** implicit route-model-binding в каналах работает **по имени**, не по позиции
+  (проверено в `Broadcaster::isImplicitlyBindable` — `$parameter->getName() === $key`).
+  Значит wildcard в паттерне обязан совпадать с именем параметра колбэка буква в букву:
+  `{conversation}` ⟷ `Conversation $conversation`. Промах (например, `{conversationId}`
+  при параметре `$conversation`) не даёт ошибку явно — модель просто не резолвится,
+  в параметр приходит сырая строка id, и следующий вызов (`$user->can(...)` с методом
+  политики, типизированным под `Conversation`) падает `TypeError`.
+
+**Событие.** `App\Events\MessageSent implements ShouldBroadcastNow` (не `ShouldBroadcast` —
+осознанно взяли синхронную versию: `QUEUE_CONNECTION=database`, но воркер (`queue:work`)
+не поднят, а тема очередей отдельная и пока не пройдена; `ShouldBroadcastNow` шлёт сразу,
+без воркера).
+- `public Message $message` в конструкторе (typed property, промотированный аргумент).
+- `broadcastOn()` → `new PrivateChannel('conversation.'.$this->message->conversation_id)` —
+  строка обязана совпадать с паттерном канала.
+- **Грабли (важные, дважды заходили не с той стороны):**
+  1. Если у события нет `broadcastWith()`, Laravel формирует payload рефлексией по
+     **public**-свойствам класса (`BroadcastEvent::getPayloadFromEvent`,
+     `getProperties(ReflectionProperty::IS_PUBLIC)`). `private Message $message` конкретно
+     здесь означало бы пустой payload на фронте — без единой ошибки, молча.
+  2. Определили `broadcastWith()` — он полностью переопределяет формирование payload,
+     рефлексия в этом случае не запускается вообще, видимость свойства после этого уже
+     не имеет значения технически (но `public` оставили — соответствует типу параметра
+     конструктора, единообразно со стилем проекта).
+  3. `broadcastWith()` отдаёт `['message' => MessageResource::make($this->message)]` —
+     переиспользует существующий ресурс вместо сырой модели. У `MessageResource.author`
+     `whenLoaded('author')` — а `$message` от `create()` эту связь не грузит. Решили
+     **не** дёргать `$this->message->load('author')` внутри события (лишний SELECT на
+     каждое сообщение), а подставлять уже известного в контроллере автора без похода
+     в БД: `$message->setRelation('author', $authUser)` — `setRelation()` возвращает `$this`,
+     поэтому это ушло прямо в диспатч одной строкой:
+     `MessageSent::dispatch($message->setRelation('author', $authUser))`
+     в `MessageController::sendMessage()`.
+
+**Зачем в зависимостях `pusher-php-server`, если используем Reverb.** Reverb — свой,
+self-hosted сервер, но говорит по протоколу Pusher; Laravel не пишет отдельный клиент под
+Reverb, а переиспользует готовый Pusher PHP SDK, просто нацеленный на `localhost:8080`
+вместо `pusher.com`. Не отдельный сервис, а библиотека протокола.
+
+**Как тестировали (полная доставка через Bruno не проверяется — see below).**
+1. `broadcastWith()` — вызвали как обычный метод объекта через tinker, посмотрели на
+   сериализованный массив (`id`/`body`/`created_at`/`author.id`/`author.name`) —
+   правильная форма, без похода в Reverb.
+2. Реальный `MessageSent::dispatch(...)` через живой `reverb:start` — прошёл без
+   исключений на двух прогонах. Это и есть надёжный сигнал успеха: неверные
+   `REVERB_APP_KEY`/хост/порт роняют `Pusher`-клиента исключением (уже видели живьём на
+   этапе настройки `.env`), так что отсутствие исключения = событие принято сервером.
+   `reverb:start --debug` в лог по HTTP-trigger событиям, увы, ничего не пишет (только
+   по факту WS-подключений), так что глазами в логе это не показать.
+3. **Почему в Bruno нельзя увидеть саму доставку:** broadcasting держится на открытом
+   WebSocket-соединении, по которому сервер сам, по своей инициативе, шлёт данные —
+   Bruno такое соединение открыть не умеет (HTTP request/response, не WS). Нужен
+   настоящий WS-клиент (браузер с Echo/pusher-js, `wscat` и т.п.), не заводили — фронта
+   в проекте нет.
+4. **Что из этого всё же тестируется в Bruno — авторизация подписки**, `POST
+   /broadcasting/auth`, обычный HTTP-эндпоинт (см. грабли про `bootstrap/app.php` выше).
+   Нужны `channel_name` (`private-conversation.{id}`, префикс `private-` — часть
+   Pusher-протокола, в `Broadcast::channel()` его нет, а в запросе он есть) и `socket_id`
+   (Pusher требует его для подписи ответа; настоящий выдаёт Reverb при WS-подключении,
+   но для проверки только своей логики авторизации подходит любая непустая строка —
+   Reverb эту сигнатуру дальше сверяет со своей стороны при реальном WS-хендшейке).
+   Проверено curl'ом: участник (Alice, беседа 1) → `200` с телом `{"auth":"..."}`,
+   не участник (Bob, та же беседа) → `403`. Логика `Broadcast::channel()` подтверждена
+   рабочей без единого реального WS-соединения.
+
+## Счётчик непрочитанных на лету — спроектировано, код не начат (2026-08-09)
+
+Пункт 2 из очереди broadcasting (после новых сообщений). Архитектуру обсудили и
+зафиксировали, писать пока не начали — пользователь сам напишет на следующей сессии.
+
+**Почему не тот же канал, что у сообщений.** `conversation.{id}` слушают только те, кто
+**сейчас открыл именно эту** беседу. Счётчик же должен обновляться и тогда, когда получатель
+сидит на экране списка бесед, а конкретный чат не открыт — значит, нужен канал **на юзера**,
+не на беседу. В `routes/channels.php` такой уже есть из коробки — `App.Models.User.{id}`
+(дефолтный канал Laravel, до этого не использовался).
+
+**Решение по payload (осознанный выбор — точное число, не сигнал):** обсуждали два варианта —
+слать только `conversation_id` (фронт сам инкрементит +1 локально, ноль лишних SELECT'ов) или
+готовое точное число `unread_messages_count` для этого получателя (пересчитывается на бэке,
+надёжнее — не разъедется при пропущенном событии/нескольких вкладках, но лишний SELECT на
+каждого получателя на каждое сообщение). Выбрали второе — точность важнее для этого проекта.
+
+**Спроектированная схема (два новых файла, ещё не созданы):**
+1. **Новое событие `UnreadCountUpdated implements ShouldBroadcastNow`** — отдельное от
+   `MessageSent`, потому что другой адресат (юзер, не беседа) и другой смысл («у тебя
+   изменился счётчик», а не «пришло сообщение»). Конструктор
+   `(int $conversationId, int $userId, int $unreadCount)`, `broadcastOn()` →
+   `PrivateChannel('App.Models.User.'.$this->userId)`, `broadcastWith()` →
+   `['conversation_id' => ..., 'unread_count' => ...]`.
+2. **Листенер на `MessageSent`** (`make:listener --event=MessageSent`) — решили делать
+   отдельным классом, а не встраивать в `MessageController`, чтобы не раздувать контроллер.
+   Автообнаружение листенеров в Laravel 11+ включено по умолчанию
+   (`Application::configure()` сам зовёт `->withEvents()` в цепочке) — регистрировать вручную
+   не нужно, достаточно `handle(MessageSent $event)` с типом события в сигнатуре.
+   Внутри:
+   - беседа — `$event->message->conversation` (lazy load);
+   - получатели кроме отправителя — `$conversation->users()->where('users.id', '!=',
+     $event->message->user_id)->get(['users.id'])` (колонка квалифицирована `users.`,
+     та же причина, что в `ConversationPolicy::isParticipant` — запрос идёт через
+     `belongsToMany` с join'ом на `conversation_user`);
+   - **на подумать, ещё не решено:** для каждого получателя нужен именно его `last_read_at`
+     по этой беседе, чтобы посчитать `unread_messages_count`. В `withCount` в списке бесед
+     это `whereColumn` внутри join'а `belongsToMany` — здесь такого join'а нет (считаем для
+     одного конкретного юзера вне контекста списка), так что `last_read_at` нужно получить
+     как обычное значение (из pivot) и подставить в `where(...)`, а не сравнивать колонки.
+   - для группы участников (не только приватных чатов) это цикл с одним `SELECT` на
+     получателя за сообщение — риск N+1 при большом числе участников группы, но группы
+     в проекте пока не используются реально (см. ниже), так что не блокирует.
+
+**Следующий шаг:** дописать `UnreadCountUpdated` (событие проще, уже писали похожее) и
+листенер, затем задиспатчить точный `unread_messages_count` на пользователя.
