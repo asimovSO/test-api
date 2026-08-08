@@ -2,6 +2,7 @@
 
 use Laravel\Sanctum\Sanctum;
 it('tests that a user can send a message in a conversation', function () {
+    /** @var \Tests\TestCase $this */
     $sender = \App\Models\User::factory()->create();
     $receiver = \App\Models\User::factory()->create();
 
