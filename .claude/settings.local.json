@@ -18,7 +18,8 @@
       "Bash(taskkill *)",
       "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X POST http://127.0.0.1:8000/broadcasting/auth -H 'Authorization: Bearer 1|dev-token-alice' -H 'Accept: application/json' --data channel_name=private-conversation.1)",
       "Bash(curl -s -w '\\\\nHTTP %{http_code}\\\\n' -X POST http://127.0.0.1:8000/broadcasting/auth -H 'Authorization: Bearer 1|dev-token-alice' -H 'Accept: application/json' --data channel_name=private-conversation.999)",
-      "Bash(grep -oE \"[A-Za-z\\\\\\\\\\\\\\\\]+Exception\" \"C:\\\\Users\\\\Alex\\\\.claude\\\\projects\\\\C--Users-Alex-Desktop-test-api\\\\9ba97f03-3a13-4596-a886-cb5b984e8b4f\\\\tool-results\\\\bp80f8d6e.txt\")"
+      "Bash(grep -oE \"[A-Za-z\\\\\\\\\\\\\\\\]+Exception\" \"C:\\\\Users\\\\Alex\\\\.claude\\\\projects\\\\C--Users-Alex-Desktop-test-api\\\\9ba97f03-3a13-4596-a886-cb5b984e8b4f\\\\tool-results\\\\bp80f8d6e.txt\")",
+      "Bash(composer dump-autoload *)"
     ]
   }
 }

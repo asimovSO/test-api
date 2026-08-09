@@ -4,7 +4,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
-use App\Http\Controllers\CheckUserIsOnline;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

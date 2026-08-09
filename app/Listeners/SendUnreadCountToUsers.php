@@ -29,7 +29,7 @@ class SendUnreadCountToUsers
             $lastReadAt = $user->pivot->last_read_at;
 
             $unreadCount = $conversation->messages()
-                ->where('user_id', '!=', $event->message->user_id)
+                ->where('user_id', '!=', $user->id)
                 ->when($lastReadAt, fn ($q) => $q->where('created_at', '>', $lastReadAt))
                 ->count();
 

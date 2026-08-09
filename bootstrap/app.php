@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         __DIR__.'/../routes/channels.php',
         ['middleware' => ['auth:sanctum']],
     )
+    ->withEvents()
     ->withMiddleware(function (Middleware $middleware): void {
         //
     })
