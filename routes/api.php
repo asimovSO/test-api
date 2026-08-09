@@ -33,5 +33,4 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::post('/{conversation}/messages', [MessageController::class, 'sendMessage']);
     });
 
-    Route::get('/heartbeat', CheckUserIsOnline::class);
 });
