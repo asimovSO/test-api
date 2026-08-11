@@ -18,6 +18,7 @@ class MessageResource extends JsonResource
             'id' => $this->id,
             'body' => $this->body,
             'created_at' => $this->created_at,
+            'is_edited' => $this->when($this->is_edited, fn () => $this->is_edited),
             'author' => $this->whenLoaded('author', fn () => UserResource::make($this->author)),
         ];
     }
