@@ -37,4 +37,5 @@ class ConversationPolicy
     {
         return $this->isParticipant($user, $conversation);
     }
+
 }

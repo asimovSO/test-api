@@ -39,4 +39,15 @@ class MessageController extends Controller
             'message' => new MessageResource($message)
         ], 201);
     }
+
+    public function deleteMessage(Request $request, Message $message)
+    {
+        Gate::authorize('delete', $message);
+
+        $message->delete();
+
+        return response()->json([
+            'message' => 'Message deleted',
+        ], 200);
+    }
 }
