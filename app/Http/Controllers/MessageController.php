@@ -40,6 +40,23 @@ class MessageController extends Controller
         ], 201);
     }
 
+    public function updateMessage(Request $request, Message $message)
+    {
+        Gate::authorize('edit', $message);
+
+        $validated = $request->validate([
+            'body' => 'required|string|min:1|max:2000'
+        ]);
+
+        $message->update([
+            'body' => $validated['body']
+        ]);
+
+        return response()->json([
+            'message' => new MessageResource($message)
+        ], 200);
+    }
+
     public function deleteMessage(Request $request, Message $message)
     {
         Gate::authorize('delete', $message);

@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function(){
     });
 
     Route::prefix('/messages')->group(function(){
+        Route::put('/{message}', [MessageController::class, 'updateMessage']);
         Route::delete('/{message}', [MessageController::class, 'deleteMessage']);
     });
 
