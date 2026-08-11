@@ -6,3 +6,5 @@ variables:
     value: dev-token-alice
   - name: token2
     value: dev-token-bob
+  - name: socket
+    value: ws://127.0.0.1:7000

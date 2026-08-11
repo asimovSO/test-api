@@ -15,7 +15,7 @@ class MessageController extends Controller
     public function getMessages(Request $request, Conversation $conversation)
     {
         Gate::authorize('view', $conversation);
-        $messages = $conversation->messages()->with('author:id,name')->latest()->paginate(20);
+        $messages = $conversation->messages()->with('author:id,name')->latest()->cursorPaginate(20);
         return MessageResource::collection($messages);
     }
 

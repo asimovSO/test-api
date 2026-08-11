@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{base}}/conversations/2/messages"
+  url: "{{base}}/conversations/1/messages"
   body:
     type: json
     data: |-
