@@ -24,13 +24,14 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::delete('/posts/{id}', [PostController::class, 'deletePost']);
 
     Route::prefix('/conversations')->group(function(){
+        Route::post('/group', [ConversationController::class, 'createGroupConversation']);
         Route::get('/', [ConversationController::class, 'getAllUserConversations']);
         Route::post('/{user}', [ConversationController::class, 'createConversation']); // для созданя беседы с пользователем
         Route::delete('/{conversation}', [ConversationController::class, 'deleteConversation']);
         Route::put('/{conversation}/mark-as-read', [ConversationController::class, 'markAsRead']);
         Route::get('/{conversation}/messages', [MessageController::class, 'getMessages']);
         Route::post('/{conversation}/messages', [MessageController::class, 'sendMessage']);
-        Route::post('/group', [ConversationController::class, 'createGroupConversation']); // для создания групповой беседы
+
     });
 
     Route::prefix('/messages')->group(function(){

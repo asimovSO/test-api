@@ -1,7 +1,7 @@
 info:
   name: create group chat
   type: http
-  seq: 4
+  seq: 8
 
 http:
   method: POST
