@@ -1,16 +1,16 @@
 info:
-  name: get messages in conversation
+  name: edit message
   type: http
-  seq: 11
+  seq: 12
 
 http:
-  method: GET
-  url: "{{base}}/conversations/1/messages"
+  method: PUT
+  url: "{{base}}/messages/19"
   body:
     type: json
     data: |-
       {
-        "body": "hello 2"
+        "body": "edited message"
       }
   auth: inherit
 

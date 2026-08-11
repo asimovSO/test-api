@@ -1,7 +1,7 @@
 info:
   name: send message in conversation
   type: http
-  seq: 9
+  seq: 10
 
 http:
   method: POST

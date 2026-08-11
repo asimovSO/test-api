@@ -32,6 +32,24 @@ class ConversationController extends Controller
         ], 200);
     }
 
+    public function createGroupConversation(
+        Request $request,
+        ConversationService $service
+    ) {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'user_ids' => 'required|array|min:2',
+        ]);
+
+        $authUser = $request->user();
+        $conversation = $service->firstOrCreateGroup($authUser->id, $validated['user_ids'], $validated['name']);
+
+        return response()->json([
+            'message' => 'Created',
+            'conversation' => new ConversationResource($conversation),
+        ], 201);
+    }
+
     public function getAllUserConversations(Request $request)
     {
         $myId = $request->user()->id;

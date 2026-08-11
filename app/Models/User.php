@@ -41,6 +41,7 @@ class User extends Authenticatable
         return $this->belongsToMany(Conversation::class)->withPivot('last_read_at');
     }
 
+
     public function messages(){
         return $this->hasMany(Message::class);
     }
