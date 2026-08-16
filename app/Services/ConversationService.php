@@ -37,12 +37,6 @@ class ConversationService
 
     public function firstOrCreateGroup(int $ownerId, array $userIds, string $name)
     {
-        if (count($userIds) < 2) {
-            throw ValidationException::withMessages([
-                'users' => 'A group must have at least 3 members',
-            ]);
-        }
-
         return DB::transaction(function () use ($ownerId, $userIds, $name) {
             $conversation = Conversation::create([
                 "is_group" => true,

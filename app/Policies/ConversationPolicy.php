@@ -25,7 +25,7 @@ class ConversationPolicy
      */
     public function delete(User $user, Conversation $conversation): bool
     {
-        return $this->isParticipant($user, $conversation);
+        return $conversation->is_group ? $conversation->owner_id === $user->id : $this->isParticipant($user, $conversation);
     }
 
     public function sendMessages(User $user, Conversation $conversation): bool
@@ -38,4 +38,18 @@ class ConversationPolicy
         return $this->isParticipant($user, $conversation);
     }
 
+    public function addParticipants(User $user, Conversation $conversation): bool
+    {
+        return $conversation->is_group && $conversation->owner_id === $user->id;
+    }
+
+    public function removeParticipants(User $user, Conversation $conversation): bool
+    {
+        return $conversation->is_group && $conversation->owner_id === $user->id;
+    }
+
+    public function quitConversation(User $user, Conversation $conversation): bool
+    {
+        return $conversation->is_group && $this->isParticipant($user, $conversation);
+    }
 }

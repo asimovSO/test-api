@@ -31,7 +31,9 @@ Route::middleware('auth:sanctum')->group(function(){
         Route::put('/{conversation}/mark-as-read', [ConversationController::class, 'markAsRead']);
         Route::get('/{conversation}/messages', [MessageController::class, 'getMessages']);
         Route::post('/{conversation}/messages', [MessageController::class, 'sendMessage']);
-
+        Route::post('/{conversation}/participant/{user}', [ConversationController::class, 'addParticipant']);
+        Route::delete('/{conversation}/participant/{user}', [ConversationController::class, 'removeParticipant']);
+        Route::post('/{conversation}/quit', [ConversationController::class, 'quitConversation']);
     });
 
     Route::prefix('/messages')->group(function(){

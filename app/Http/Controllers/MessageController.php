@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Http\Resources\MessageResource;
 use Illuminate\Support\Facades\Gate;
 use App\Events\MessageSent;
+use App\Http\Requests\MessageRequest;
 
 class MessageController extends Controller
 {
@@ -19,14 +20,12 @@ class MessageController extends Controller
         return MessageResource::collection($messages);
     }
 
-    public function sendMessage(Request $request, Conversation $conversation){
+    public function sendMessage(MessageRequest $request, Conversation $conversation){
         $authUser = $request->user();
 
         Gate::authorize('sendMessages', $conversation);
 
-        $validated = request()->validate([
-            'body' => 'required|string|min:1|max:2000'
-        ]);
+        $validated = $request->validated();
 
         $message = $authUser->messages()->create([
             'conversation_id' => $conversation->id,
@@ -40,16 +39,14 @@ class MessageController extends Controller
         ], 201);
     }
 
-    public function updateMessage(Request $request, Message $message)
+    public function updateMessage(MessageRequest $request, Message $message)
     {
         Gate::authorize('edit', $message);
 
-        $validated = $request->validate([
-            'body' => 'required|string|min:1|max:2000'
-        ]);
+
 
         $message->update([
-            'body' => $validated['body']
+            'body' => $request->validated()['body']
         ]);
 
         return response()->json([
@@ -57,7 +54,7 @@ class MessageController extends Controller
         ], 200);
     }
 
-    public function deleteMessage(Request $request, Message $message)
+    public function deleteMessage(Message $message)
     {
         Gate::authorize('delete', $message);
 

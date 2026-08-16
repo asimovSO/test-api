@@ -474,5 +474,47 @@ presence-каналы. Полный контракт (эндпоинты + ка�
    зависимостями (`predis/predis` тоже станет не нужен, если ничего кроме него Redis не
    использует — не проверяли).
 
-**Дальше по проекту:** групповые чаты — единственный крупный нетронутый кусок. Схема готова
-(`is_group`/`owner_id`), код нигде не создаёт группы и не управляет составом участников.
+**Дальше по проекту (устарело, см. ниже свежие разделы).**
+
+## Что сделано после 2026-08-09, но не задокументировано по ходу
+
+Несколько сессий без обновления CLAUDE.md — по git-логу сделано: `updateMessage`/
+`deleteMessage` + `MessagePolicy` (`edit`/`delete` через `isAuthor`), флаг `is_edited` на
+`Message` (`created_at != updated_at`, `$appends`), `cursorPaginate` вместо `paginate` в
+`getMessages`. Групповые чаты **начаты, но не закончены** (коммит `group chats(in
+maintenance` — говорящее название): есть `POST /api/conversations/group` →
+`ConversationController::createGroupConversation` → `ConversationService::firstOrCreateGroup`,
+но **нет** управления составом (добавить/удалить участника, выйти из группы), **нет**
+owner-only прав — `ConversationPolicy::delete` проверяет только `isParticipant`, значит
+удалить группу может любой участник, не только `owner_id`. Самое очевидное продолжение,
+когда дойдут руки.
+
+## Рефакторинг на FormRequest — в процессе (2026-08-15)
+
+Отдельная учебная задача, не привязана к продуктовым фичам: переносим inline
+`$request->validate([...])` в контроллерах на классы `FormRequest` (`app/Http/Requests`),
+чтобы разделить «как принять запрос» и «какие у него правила».
+
+**Сделано:** `app/Http/Requests/MessageRequest.php` — правило `body` (`required|string|
+min:1|max:2000`), `authorize()` оставлен `true` по умолчанию (авторизация продолжает жить
+в `Gate::authorize(...)` + policies в контроллере, не дублируется в FormRequest —
+осознанный выбор между «FormRequest только валидирует» и «ещё и авторизует», взят первый,
+раз policies уже были готовы). Подключён в `MessageController::sendMessage` и
+`updateMessage`.
+
+**Баг на этом пути (пойман и исправлен):** `deleteMessage` изначально тоже получил
+`MessageRequest $request` — а у DELETE нет `body`, так что `rules()` требовал поле,
+которого в запросе нет → 422 на каждый вызов. Метод вообще не использовал объект запроса,
+поэтому исправлено на `deleteMessage(Message $message)` без параметра запроса целиком, а
+не просто заменой типа на `Request`. Правило на будущее: FormRequest привязан к форме
+*данных*, не к контроллеру — если у метода нет входных данных для валидации, ему не
+нужен даже `Request`, если он не используется.
+
+**Не сделано:** `ConversationController::createGroupConversation` всё ещё валидирует
+инлайново (`name`, `user_ids`) — кандидат на следующий `FormRequest`. Заодно там же
+дублирующая проверка `count($userIds) < 2` в `ConversationService::firstOrCreateGroup`
+(та же проверка уже есть в `'user_ids' => 'required|array|min:2'` на уровне валидации) —
+стоит убрать при переносе.
+
+**Дальше по проекту:** групповые чаты (управление составом, owner-only права) —
+крупный нетронутый кусок; FormRequest на `createGroupConversation` — текущая мелкая задача.

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Services\ConversationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use App\Http\Requests\CreateGroupConversationRequest;
 
 class ConversationController extends Controller
 {
@@ -33,13 +34,10 @@ class ConversationController extends Controller
     }
 
     public function createGroupConversation(
-        Request $request,
+        CreateGroupConversationRequest $request,
         ConversationService $service
     ) {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'user_ids' => 'required|array|min:2',
-        ]);
+        $validated = $request->validated();
 
         $authUser = $request->user();
         $conversation = $service->firstOrCreateGroup($authUser->id, $validated['user_ids'], $validated['name']);
@@ -81,6 +79,62 @@ class ConversationController extends Controller
 
         return response()->json([
             'message' => 'Conversation marked as read',
+        ], 200);
+    }
+
+    public function addParticipant(Request $request, Conversation $conversation, User $user)
+    {
+        Gate::authorize('addParticipants', $conversation);
+
+        if ($conversation->users()->where('user_id', $user->id)->exists()) {
+            return response()->json([
+                'message' => 'User is already a participant',
+            ], 400);
+        }
+
+        $conversation->users()->syncWithoutDetaching([$user->id]);
+
+        return response()->json([
+            'message' => 'Participant added',
+            'conversation' => new ConversationResource($conversation->load('users')),
+        ], 200);
+    }
+
+    public function removeParticipant(Request $request, Conversation $conversation, User $user)
+    {
+        Gate::authorize('removeParticipants', $conversation);
+
+        $conversation->users()->detach($user->id);
+
+        return response()->json([
+            'message' => 'Participant removed',
+            'conversation' => new ConversationResource($conversation->load('users')),
+        ], 200);
+    }
+
+    public function quitConversation(Request $request, Conversation $conversation)
+    {
+        Gate::authorize('quitConversation', $conversation);
+
+        if ($conversation->owner_id === $request->user()->id) {
+            $newOwner = $conversation->users()->where('user_id', '!=', $conversation->owner_id)->first();
+
+            if (!$newOwner) {
+                $conversation->delete();
+
+                return response()->json([
+                    'message' => 'You have left the conversation',
+                ], 200);
+            }
+
+            $conversation->owner_id = $newOwner->id;
+            $conversation->save();
+        }
+
+        $conversation->users()->detach($request->user()->id);
+
+        return response()->json([
+            'message' => 'You have left the conversation'
         ], 200);
     }
 }
