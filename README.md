@@ -1,3 +1,13 @@
+# test-api
+
+Backend на Laravel 13 для постов и чата: Sanctum Bearer-аутентификация,
+личные и групповые беседы и realtime через Laravel Reverb.
+
+- [Документация для frontend-разработчика](FRONTEND.md)
+- [Как открыть разработчику доступ](ACCESS.md)
+
+---
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

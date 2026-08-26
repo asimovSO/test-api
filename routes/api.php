@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\PostController;
+use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,12 @@ Route::middleware('auth:sanctum')->group(function(){
     Route::post('/posts', [PostController::class, 'createPost']);
     Route::put('/posts/{id}', [PostController::class, 'updatePost']);
     Route::delete('/posts/{id}', [PostController::class, 'deletePost']);
+
+    Route::prefix('/users')->group(function(){
+        Route::get('/', [UserController::class, 'getAllUsers']);
+        Route::get('/{user}', [UserController::class, 'getUserById']);
+        Route::get('/search', [UserController::class, 'searchUsers']);
+    });
 
     Route::prefix('/conversations')->group(function(){
         Route::post('/group', [ConversationController::class, 'createGroupConversation']);
