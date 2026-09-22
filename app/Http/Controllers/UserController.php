@@ -22,7 +22,7 @@ class UserController extends Controller
 
     public function searchUsers(Request $request)
     {
-        $users = User::where('name', 'like', "%{$request->input('query')}%")->get();
+        $users = User::where('name', 'like', "%{$request->input('query')}%")->orWhere('email', 'like', "%{$request->input('query')}%")->get();
         return UserResource::collection($users);
     }
 }
