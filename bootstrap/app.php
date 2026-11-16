@@ -19,7 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withEvents()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->append('throttle:api');
+        $middleware->throttleApi();
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
