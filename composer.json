@@ -14,7 +14,9 @@
         "laravel/reverb": "^1.11",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^3.0",
-        "predis/predis": "^3.5"
+        "predis/predis": "^3.5",
+        "ext-pdo_mysql": "*",
+        "ext-redis": "*"
     },
     "require-dev": {
         "barryvdh/laravel-ide-helper": "^3.7",
